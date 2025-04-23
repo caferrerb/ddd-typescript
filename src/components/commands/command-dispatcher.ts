@@ -6,8 +6,6 @@ import { getConventionReducers, getExplicitReducersAll } from "../events/event-r
 import { DomainEvent } from "../events/events";
 import { CommandHandlerResult, GenericCommandHandler, GenericCommandHandlerInterface } from "./baseCommandHandler";
 import { Command } from "./command";
-import { getAggregateTypeForCommand, isConstructorCommand } from "./command-annotation";
-import { getHandlerForCommand } from "./command-handler-annotation";
 import { CommandHandler, CommandHandlerFactory } from "./command-handler-factory";
 
 export interface DispatchResult<TAggregate extends AggregateRoot> {
@@ -41,11 +39,6 @@ export class CommandDispatcher {
     command: Command,
     options: { trace?: (info: { type: string; data: any }) => void } = {}
   ): Promise<DispatchResult<T>> {
-    const aggregateType = getAggregateTypeForCommand(command);
-    if (!aggregateType || !isAggregateRoot(aggregateType)) {
-      throw new Error(`No se pudo inferir el AggregateRoot desde el comando ${command.type}`);
-    }
-
     const trace = options.trace ?? (() => {});
 
     const execute = async (cmd: Command): Promise<DispatchResult<T>> => {

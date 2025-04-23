@@ -1,17 +1,31 @@
 import 'reflect-metadata';
 
-const COMMAND_HANDLER_REGISTRY = new Map<Function, Function>();
+export const COMMAND_HANDLER_KEY = Symbol('ddd:commandHandler');
+export const ALL_COMMAND_HANDLERS_KEY = Symbol('ddd:allCommandHandlers');
 
 export function CommandHandlerFor(commandType: Function): ClassDecorator {
-  return (target: Function) => {
-    COMMAND_HANDLER_REGISTRY.set(commandType, target);
+  return (target) => {
+    Reflect.defineMetadata(COMMAND_HANDLER_KEY, commandType, target);
+
+    const existing: Function[] = Reflect.getMetadata(ALL_COMMAND_HANDLERS_KEY, Reflect) || [];
+    if (!existing.includes(target)) {
+      Reflect.defineMetadata(ALL_COMMAND_HANDLERS_KEY, [...existing, target], Reflect);
+    }
   };
 }
 
+export function getCommandTypeForHandler(handlerClass: Function): Function | undefined {
+  return Reflect.getMetadata(COMMAND_HANDLER_KEY, handlerClass);
+}
+
 export function getHandlerForCommand(command: any): Function | undefined {
-  return COMMAND_HANDLER_REGISTRY.get(command.constructor);
+  const all = getAllCommandHandlers();
+  return all.find(handlerClass => {
+    const commandType:any = getCommandTypeForHandler(handlerClass);
+    return command instanceof commandType;
+  });
 }
 
 export function getAllCommandHandlers(): Function[] {
-    return Array.from(COMMAND_HANDLER_REGISTRY.values());
-  }
+  return Reflect.getMetadata(ALL_COMMAND_HANDLERS_KEY, Reflect) || [];
+}

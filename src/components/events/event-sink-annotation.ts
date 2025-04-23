@@ -21,3 +21,10 @@ export function getEventSinksFor(event: Function): Array<{
 }> {
   return Reflect.getMetadata(EVENT_SINKS_KEY, event) || [];
 }
+
+export function getAllEventSinks(): Array<{
+  sinkType: Function;
+  condition?: (event: any) => boolean;
+}> {
+  return Reflect.getMetadata(EVENT_SINKS_KEY, Reflect) || [];
+}

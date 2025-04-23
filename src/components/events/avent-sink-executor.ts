@@ -8,7 +8,7 @@ export interface EventSinkExecutorOptions {
 
 export interface EventSinkHandler<TEvent = any> {
     handle(event: TEvent): Promise<void> | void;
-  }
+}
 
 export class EventSinkExecutor {
   constructor(
