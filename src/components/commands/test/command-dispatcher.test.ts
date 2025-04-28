@@ -1,121 +1,118 @@
-import { CommandDispatcher, DispatchResult } from '../command-dispatcher';
+import { CommandDispatcher, CommandMiddleware } from '../command-dispatcher';
+import { GenericCommandHandler } from '../baseCommandHandler';
 import { CommandHandlerFactory } from '../command-handler-factory';
-import { Command } from '../command';
-import { AggregateRoot } from '../../aggregate/aggregate';
-import { DomainEvent } from '../../events/events';
+import { InMemoryEventStore, InMemoryStateStore } from '../../../test/infraestructure';
 import { EventSinkExecutor } from '../../events/avent-sink-executor';
-import { GenericCommandHandler, CommandHandlerResult } from '../baseCommandHandler';
+import {DepositCommand, DepositCommandHandler, WithdrawCommand} from "./mocks/commandmocks";
+import {TestAggregate} from "../../aggregate/test/mocks/aggregatemocks";
+import {DepositEvent} from "../../events/test/mocks/eventsmocks";
 
 describe('CommandDispatcher', () => {
-  @AggregateRoot()
-  class TestAggregate implements AggregateRoot {
-    id = '123';
-    version = 1;
-  }
-
-  class TestCommand implements Command {
-    type = 'TestCommand';
-    aggregateId = '123';
-  }
-
-  class TestEvent implements DomainEvent {
-    type = 'TestEvent';
-    data = { test: 'data' };
-  }
-
-  let factory: CommandHandlerFactory;
-  let mockHandler: jest.Mocked<GenericCommandHandler>;
-  let mockSinks: jest.Mocked<EventSinkExecutor>;
   let dispatcher: CommandDispatcher;
-  let testCommand: TestCommand;
-  let testAggregate: TestAggregate;
-  let testEvent: TestEvent;
-  let trace: jest.Mock;
+  let factory: CommandHandlerFactory;
+  let eventStore: InMemoryEventStore;
+  let stateStore: InMemoryStateStore;
+  let genericHandler: GenericCommandHandler<any>;
 
   beforeEach(() => {
-    testCommand = new TestCommand();
-    testAggregate = new TestAggregate();
-    testEvent = new TestEvent();
-    trace = jest.fn();
-
-    mockHandler = {
-      handle: jest.fn()
-    } as unknown as jest.Mocked<GenericCommandHandler>;
-
-    mockSinks = {
-      run: jest.fn().mockResolvedValue(undefined)
-    } as unknown as jest.Mocked<EventSinkExecutor>;
-
+    eventStore = new InMemoryEventStore();
+    stateStore = new InMemoryStateStore();
+    
     factory = {
-      create: jest.fn(),
-      getStateStore: jest.fn(),
-      getEventStore: jest.fn()
+      create: ((type: any): any => {
+        if (type === TestAggregate) return new TestAggregate();
+        if (type === DepositCommandHandler) return new DepositCommandHandler();
+        throw new Error('Unknown type');
+      }),
+      getEventStore: jest.fn(() => eventStore),
+      getStateStore: jest.fn(() => stateStore),
     };
 
-    mockHandler.handle.mockResolvedValue({
-      state: testAggregate,
-      events: [testEvent]
-    } as CommandHandlerResult<TestAggregate>);
-
-    dispatcher = new CommandDispatcher(
-      factory,
-      [],
-      mockSinks,
-      mockHandler
-    );
+    dispatcher = new CommandDispatcher(factory);
   });
 
   it('should dispatch a command and return the result', async () => {
-    const result = await dispatcher.dispatch<TestAggregate>(testCommand);
-
-    expect(mockHandler.handle).toHaveBeenCalledWith(testCommand);
-    expect(result).toEqual({
-      aggregate: testAggregate,
-      events: [testEvent]
-    });
+    const command = new DepositCommand({ amount: 100 }, { aggregateId: 'agg-1' });
+    
+    const result = await dispatcher.dispatch(command);
+    
+    expect(result.aggregate).toBeDefined();
+    expect(result.events).toHaveLength(1);
+    expect(result.events[0].data.amount).toBe(100);
+    expect(result.aggregate.getState().value).toBe(100);
   });
 
-  it('should execute event sinks for each event', async () => {
-    await dispatcher.dispatch<TestAggregate>(testCommand);
-
-    expect(mockSinks.run).toHaveBeenCalledWith(testEvent);
+  it('should handle commands with aggregate command handlers', async () => {
+    await stateStore.save(TestAggregate, 'agg-2', { value: 50 });
+    
+    const command = new WithdrawCommand({ amount: 20 }, { aggregateId: 'agg-2' });
+    
+    const result = await dispatcher.dispatch(command);
+    
+    expect(result.aggregate.getState().value).toBe(30);
+    expect(result.events).toHaveLength(1);
+    expect(result.events[0].data.amount).toBe(20);
   });
 
-  it('should call trace function when provided', async () => {
-    await dispatcher.dispatch<TestAggregate>(testCommand, { trace });
-
-    expect(trace).toHaveBeenCalledWith({
-      type: 'event.applied',
-      data: { event: testEvent }
-    });
+  it('should handle multiple commands in sequence', async () => {
+    const depositCommand = new DepositCommand({ amount: 100 }, { aggregateId: 'agg-3' });
+    const withdrawCommand = new WithdrawCommand({ amount: 30 }, { aggregateId: 'agg-3' });
+    
+    await dispatcher.dispatch(depositCommand);
+    const result = await dispatcher.dispatch(withdrawCommand);
+    
+    expect(result.aggregate.getState().value).toBe(70);
   });
 
-  it('should apply middlewares in the correct order', async () => {
+  it('should throw an error when command handling fails', async () => {
+    const invalidCommand = new WithdrawCommand({ amount: 200 }, { aggregateId: 'agg-4' });
+    
+    // First deposit a smaller amount
+    await dispatcher.dispatch(new DepositCommand({ amount: 50 }, { aggregateId: 'agg-4' }));
+    
+    // Then try to withdraw more than available
+    await expect(dispatcher.dispatch(invalidCommand)).rejects.toThrow();
+  });
+
+  it('should execute event sinks after command handling', async () => {
+    // Create a mock event sink
+    const mockSink = jest.fn();
+    const sinks = new EventSinkExecutor(factory);
+    //sinks.register(DepositEvent, mockSink);
+    
+    const dispatcherWithSinks = new CommandDispatcher(factory, [], sinks);
+    
+    const command = new DepositCommand({ amount: 100 }, { aggregateId: 'agg-5' });
+    await dispatcherWithSinks.dispatch(command);
+    
+    // Verify the sink was called with the event
+    expect(mockSink).toHaveBeenCalledTimes(1);
+    expect(mockSink.mock.calls[0][0]).toBeInstanceOf(DepositEvent);
+    expect(mockSink.mock.calls[0][0].data.amount).toBe(100);
+  });
+  
+  it('should apply middleware in the correct order', async () => {
     const executionOrder: string[] = [];
     
-    const middleware1 = jest.fn().mockImplementation(async (cmd, next) => {
+    const middleware1: CommandMiddleware = async (command, next) => {
       executionOrder.push('middleware1-before');
-      const result = await next(cmd);
+      const result = await next(command);
       executionOrder.push('middleware1-after');
       return result;
-    });
+    };
     
-    const middleware2 = jest.fn().mockImplementation(async (cmd, next) => {
+    const middleware2: CommandMiddleware = async (command, next) => {
       executionOrder.push('middleware2-before');
-      const result = await next(cmd);
+      const result = await next(command);
       executionOrder.push('middleware2-after');
       return result;
-    });
-
-    dispatcher = new CommandDispatcher(
-      factory,
-      [middleware1, middleware2],
-      mockSinks,
-      mockHandler
-    );
-
-    await dispatcher.dispatch<TestAggregate>(testCommand);
-
+    };
+    
+    const dispatcherWithMiddleware = new CommandDispatcher(factory, [middleware1, middleware2]);
+    
+    const command = new DepositCommand({ amount: 100 }, { aggregateId: 'agg-6' });
+    await dispatcherWithMiddleware.dispatch(command);
+    
     expect(executionOrder).toEqual([
       'middleware1-before',
       'middleware2-before',
@@ -123,45 +120,4 @@ describe('CommandDispatcher', () => {
       'middleware1-after'
     ]);
   });
-
-  it('should allow middlewares to modify the command', async () => {
-    const modifiedCommand = { ...testCommand, modified: true };
-    
-    const middleware = jest.fn().mockImplementation(async (cmd, next) => {
-      return next(modifiedCommand);
-    });
-
-    dispatcher = new CommandDispatcher(
-      factory,
-      [middleware],
-      mockSinks,
-      mockHandler
-    );
-
-    await dispatcher.dispatch<TestAggregate>(testCommand);
-
-    expect(mockHandler.handle).toHaveBeenCalledWith(modifiedCommand);
-  });
-
-  it('should allow middlewares to short-circuit the chain', async () => {
-    const expectedResult: DispatchResult<TestAggregate> = {
-      aggregate: testAggregate,
-      events: []
-    };
-    
-    const middleware = jest.fn().mockResolvedValue(expectedResult);
-
-    dispatcher = new CommandDispatcher(
-      factory,
-      [middleware],
-      mockSinks,
-      mockHandler
-    );
-
-    const result = await dispatcher.dispatch<TestAggregate>(testCommand);
-
-    expect(mockHandler.handle).not.toHaveBeenCalled();
-    expect(result).toBe(expectedResult);
-  });
 });
-

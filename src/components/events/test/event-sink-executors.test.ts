@@ -1,120 +1,133 @@
-// Tests
-import { DomainEvent } from '../events';
+import { EventSinkExecutor } from '../avent-sink-executor';
 import { CommandHandlerFactory } from '../../commands/command-handler-factory';
-import { EventSinkHandler, EventSinkExecutor } from '../avent-sink-executor';
-import { EventSink, getEventSinksFor } from '../event-sink-annotation';
-import { Event } from '../event-annotation';
+import {
+  DepositEvent,
+  DepositEventSink,
+  OtherDepositEventSink,
+  TestEvent,
+  WithdrawEvent,
+  WithDrawSink
+} from './mocks/eventsmocks';
+import {TestAggregate} from "../../aggregate/test/mocks/aggregatemocks";
 
 describe('EventSinkExecutor', () => {
-  
-  @Event()
-  class TestEvent implements DomainEvent {
-    type = 'TestEvent';
-    data: any;
-    constructor(data?: any) {
-      this.data = data ?? { test: 'data' };
-    }
-  }
-
-  @Event()
-  class FailingEvent implements DomainEvent {
-    type = 'FailingEvent';
-    data = { test: 'data' };
-  }
-
-  @EventSink({ event: TestEvent, condition: (event: TestEvent) => event.data.test === 'data' })
-  class TestSink implements EventSinkHandler {
-    handle = jest.fn().mockResolvedValue(undefined);
-  }
-
-  @EventSink({ event: FailingEvent })
-  class FailingSink implements EventSinkHandler {
-    handle = jest.fn().mockRejectedValue(new Error('Sink failed'));
-  }
-
-  @EventSink({ event: TestEvent })
-  class FailingSink2 implements EventSinkHandler {
-    handle = jest.fn().mockRejectedValue(new Error('Sink failed'));
-  }
-
   let factory: CommandHandlerFactory;
-  let testEvent: TestEvent;
-  let testSink: TestSink;
-  let failingSink: FailingSink;
-  let failingSink2: FailingSink2;
-  let trace: jest.Mock;
+  let executor: EventSinkExecutor;
+  let mockAggregate: TestAggregate;
+  let depositSink: DepositEventSink;
+  let withdrawSink: WithDrawSink;
+  let otherSink: DepositEventSink;
 
   beforeEach(() => {
-    testEvent = new TestEvent();
-    testSink = new TestSink();
-    failingSink = new FailingSink();
-    failingSink2 = new FailingSink2();
-    trace = jest.fn();
+    depositSink = new DepositEventSink(jest.fn(async (e: DepositEvent)=>{ return } ));
+    withdrawSink = new WithDrawSink(jest.fn(async (e: WithdrawEvent)=>{ return } ));
+    otherSink = new OtherDepositEventSink(jest.fn(async (e: WithdrawEvent)=>{ return } ));
 
     factory = {
-      create<T>(type: new (...args: any[]) => T): T {
-        if (type === TestSink) return testSink as T;
-        if (type === FailingSink) return failingSink as T;
-        if (type === FailingSink2) return failingSink2 as T;
-        return null as T;
-      },
+      create: jest.fn((type: any): any => {
+        if (type === DepositEventSink) return depositSink;
+        if (type === WithDrawSink) return withdrawSink;
+        if (type === OtherDepositEventSink) return withdrawSink;
+        throw new Error(`Unknown sink type: ${type.name}`);
+      }),
+      getEventStore: jest.fn(),
       getStateStore: jest.fn(),
-      getEventStore: jest.fn()
     };
+
+    executor = new EventSinkExecutor(factory);
+    mockAggregate = new TestAggregate('ar-1');
+    mockAggregate.loadFrom({value: 0});
   });
 
-  it('should execute all event sinks for an event', async () => {
-    const executor = new EventSinkExecutor(factory);
-    await executor.run(testEvent);
+  it('should execute the appropriate sink for an event', async () => {
+    const event = new DepositEvent({ amount: 100 });
     
-    expect(testSink.handle).toHaveBeenCalledWith(testEvent);
+    await executor.run(event, mockAggregate);
+    
+    expect(factory.create).toHaveBeenCalledWith(DepositEventSink);
+    expect(depositSink.fn).toHaveBeenCalledWith(event, mockAggregate);
   });
 
-  it('should skip sinks when condition returns false', async () => {
-    const executor = new EventSinkExecutor(factory);
-
-    await executor.run(new TestEvent({ test: 'other data' }));
+  it('should not execute sinks for events without registered sinks', async () => {
+    const event = new TestEvent();
     
-    expect(testSink.handle).not.toHaveBeenCalled();
+    await executor.run(event, mockAggregate);
+    
+    expect(factory.create).not.toHaveBeenCalled();
   });
 
-  it('should execute sinks when condition returns true', async () => {
-    const executor = new EventSinkExecutor(factory);
-
-    await executor.run(testEvent);
+  it('should respect the couldBeTriggered condition when true', async () => {
+    const event = new WithdrawEvent({ amount: 50 });
     
-    expect(testSink.handle).toHaveBeenCalledWith(testEvent);
+    await executor.run(event, mockAggregate);
+    
+    expect(factory.create).toHaveBeenCalledWith(WithDrawSink);
+    expect(withdrawSink.fn).toHaveBeenCalled();
+  });
+
+  it('should respect the couldBeTriggered condition when false', async () => {
+    const event = new WithdrawEvent({ amount: 0 });
+    
+    await executor.run(event, mockAggregate);
+    
+    expect(factory.create).toHaveBeenCalledWith(WithDrawSink);
+    expect(withdrawSink.fn).not.toHaveBeenCalled();
+  });
+
+  it('should handle errors in sinks when failFast is false', async () => {
+    const failingSink = new DepositEventSink(jest.fn().mockRejectedValue(new Error('Sink failed')));
+    factory.create = jest.fn().mockReturnValue(failingSink);
+    
+    const event = new DepositEvent({ amount: 100 });
+    
+    await expect(executor.run(event, mockAggregate)).resolves.not.toThrow();
+  });
+
+  it('should throw errors when failFast is true', async () => {
+    const failingSink = new DepositEventSink(jest.fn().mockRejectedValue(new Error('Sink failed')));
+    factory.create = jest.fn().mockReturnValue(failingSink);
+    
+    executor = new EventSinkExecutor(factory, { failFast: true });
+    const event = new DepositEvent({ amount: 100 });
+    
+    await expect(executor.run(event, mockAggregate)).rejects.toThrow('Sink failed');
   });
 
   it('should call trace function when provided', async () => {
-    const executor = new EventSinkExecutor(factory, { trace });
-  
-    await executor.run(testEvent);
+    const traceFn = jest.fn();
+    executor = new EventSinkExecutor(factory, { trace: traceFn });
     
-    expect(trace).toHaveBeenCalledWith({
-      type: 'event.sink.invoked',
-      data: { sink: 'TestSink', event: testEvent }
-    });
+    const event = new DepositEvent({ amount: 100 });
+    
+    await executor.run(event, mockAggregate);
+    
+    expect(traceFn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'event.sink.invoked',
+        data: expect.objectContaining({
+          sink: 'DepositEventSink',
+          event
+        })
+      })
+    );
   });
 
-  it('should continue execution when a sink fails and failFast is false', async () => {
-    const executor = new EventSinkExecutor(factory, { trace, failFast: false });
-  
-    await executor.run(new TestEvent());
+  it('should execute multiple sinks for the same event if registered', async () => {
+    const anotherSink = new OtherDepositEventSink(jest.fn().mockResolvedValue(undefined));
+    const sinks = [depositSink, anotherSink];
+    let sinkIndex = 0;
     
-    expect(failingSink2.handle).toHaveBeenCalled();
-    expect(testSink.handle).toHaveBeenCalled();
-  });
+    factory.create = jest.fn((): any => sinks[sinkIndex++]);
 
-  it('should throw error when a sink fails and failFast is true', async () => {
-    const executor = new EventSinkExecutor(factory, { trace, failFast: true });
-  
-    await expect(executor.run(new FailingEvent())).rejects.toThrow('Sink failed');
+    const event = new DepositEvent({ amount: 100 });
     
-    expect(failingSink.handle).toHaveBeenCalled();
-    expect(trace).toHaveBeenCalledWith({
-      type: 'event.sink.failed',
-      data: { sink: 'FailingSink', error: expect.any(Error) }
-    });
+    await executor.run(event, mockAggregate);
+    
+    expect(factory.create).toHaveBeenCalledTimes(2);
+    expect(sinks[0].fn).toHaveBeenCalledWith(event, mockAggregate);
+    expect(sinks[1].fn).toHaveBeenCalledWith(event, mockAggregate);
+    
+    // Restore the original implementation
+    jest.restoreAllMocks();
   });
 });

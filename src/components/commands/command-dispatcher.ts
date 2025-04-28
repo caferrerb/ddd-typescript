@@ -49,7 +49,7 @@ export class CommandDispatcher {
         await this.sinks.run(event);
       }
 
-      return { aggregate: result.state, events: result.events };
+      return { aggregate: result.aggregate, events: result.events };
     };
 
     const middlewareChain = this.middlewares.reduceRight<MiddlewareFunction>(

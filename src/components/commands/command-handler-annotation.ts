@@ -3,7 +3,7 @@ import 'reflect-metadata';
 export const COMMAND_HANDLER_KEY = Symbol('ddd:commandHandler');
 export const ALL_COMMAND_HANDLERS_KEY = Symbol('ddd:allCommandHandlers');
 
-export function CommandHandlerFor(commandType: Function): ClassDecorator {
+export function commandHandlerFor(commandType: Function): ClassDecorator {
   return (target) => {
     Reflect.defineMetadata(COMMAND_HANDLER_KEY, commandType, target);
 

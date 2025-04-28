@@ -16,9 +16,10 @@
     "bluebird": "^3.7.2",
     "inversify": "^6.0.2",
     "reflect-metadata": "~0.2.2",
-    "uuid": "^10.0.0"
+    "uuid": "10.0.0"
   },
   "devDependencies": {
+    "@types/uuid": "10.0.0",
     "@types/jest": "^29.5.12",
     "@types/node": "^20.11.24",
     "@typescript-eslint/eslint-plugin": "^7.1.0",

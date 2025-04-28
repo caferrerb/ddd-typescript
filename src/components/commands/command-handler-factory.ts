@@ -10,7 +10,7 @@ export interface CommandHandler<TCommand extends Command = Command, TAggregate e
 
 
 export interface CommandHandlerFactory {
-    create<T>(type: new (...args: any[]) => T): T;
+    create<T = any>(type: new (...args: any[]) => T): T;
     getStateStore(): StateStore;
     getEventStore(): EventStore;
 }

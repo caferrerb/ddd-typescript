@@ -14,12 +14,7 @@ export abstract class AggregateRoot<TState = any> {
     }
 
     protected apply(event: DomainEvent) {
-        if (!event.metadata?.eventId) {
-            event.metadata = {
-                eventId: uuidv4()
-            }
-        }
-        const eventId = event.metadata?.eventId ?? '';
+        const eventId = event.metadata?.eventId;
         if (this._appliedEventIds.has(eventId)) return;
     
         this.when(event);
@@ -29,6 +24,10 @@ export abstract class AggregateRoot<TState = any> {
   
     get pendingEvents(): DomainEvent[] {
       return [...this._pendingEvents];
+    }
+
+    getState(): TState {
+      return this.state;
     }
   
     clearEvents(): void {
@@ -57,11 +56,10 @@ export abstract class AggregateRoot<TState = any> {
       return JSON.parse(JSON.stringify(rest));
     }
   
-    loadFrom(state: Record<string, any>): void {
-      Object.assign(this, state);
+    loadFrom(state: TState): void {
+      this.state = state as TState;
     }
   
-    /** Alternativa de fábrica */
     static fromJSON<T extends AggregateRoot<any>>(this: new () => T, json: Record<string, any>): T {
       const instance = new this();
       instance.loadFrom(json);
