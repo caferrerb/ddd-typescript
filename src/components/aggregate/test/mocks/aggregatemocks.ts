@@ -35,4 +35,16 @@ export class TestAggregate extends AggregateRoot<TestAggregateState> {
         this.apply(event);
         return event;
     }
+
+    serialize(): Record<string, any> {
+        return {
+            ...this.state,
+        };
+    }
+
+    deSerialize(json: Record<string, any>): TestAggregateState {
+        return {
+            value: json.value,
+        }
+    }
 }

@@ -36,7 +36,7 @@ describe('EventSinkExecutor', () => {
 
     executor = new EventSinkExecutor(factory);
     mockAggregate = new TestAggregate('ar-1');
-    mockAggregate.loadFrom({value: 0});
+    mockAggregate.deSerialize({value: 0});
   });
 
   it('should execute the appropriate sink for an event', async () => {

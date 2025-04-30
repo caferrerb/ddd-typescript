@@ -1,6 +1,6 @@
-import { getConventionReducers, getExplicitReducersAll } from "../events/event-reducer";
-import { DomainEvent } from "../events/events";
-import { v4 as uuidv4 } from 'uuid';
+import {getConventionReducers, getExplicitReducersAll} from "../events/event-reducer";
+import {DomainEvent} from "../events/events";
+import {v4 as uuidv4} from 'uuid';
 
 export abstract class AggregateRoot<TState = any> {
     private readonly _pendingEvents: DomainEvent[] = [];
@@ -8,8 +8,8 @@ export abstract class AggregateRoot<TState = any> {
     protected readonly _id: string;
     protected state: TState;
 
-    constructor(id?: string) {
-        this.state = {} as TState;
+    constructor(id?: string, state?: TState) {
+        this.state = state ?? {} as TState;
         this._id = id ?? uuidv4();
     }
 
@@ -51,18 +51,26 @@ export abstract class AggregateRoot<TState = any> {
         }
     }
   
+    abstract serialize(): Record<string, any>;
+    abstract deSerialize(state: Record<string, any>): TState;
+
     toJSON(): Record<string, any> {
-      const { _pendingEvents, ...rest } = this as any;
-      return JSON.parse(JSON.stringify(rest));
+        const json = this.serialize();
+        return {
+            id: this._id,
+            ...json,
+        };
     }
-  
-    loadFrom(state: TState): void {
-      this.state = state as TState;
+
+    loadFrom(json: Record<string, any>) {
+        const {id, ...jsonstate}  = json;
+        this.state = this.deSerialize(jsonstate);
     }
-  
-    static fromJSON<T extends AggregateRoot<any>>(this: new () => T, json: Record<string, any>): T {
+
+    static fromJSON<T extends AggregateRoot<any>>(this: new (id?: string, state?: any) => T, json: Record<string, any>): T {
       const instance = new this();
-      instance.loadFrom(json);
-      return instance;
+      const {id, ...jsonstate}  = json;
+      const state = instance.deSerialize(json);
+      return new this(id, jsonstate);
     }
   }

@@ -26,6 +26,41 @@ export type CommandMiddleware = (
   command: any,
   next: (command: any) => Promise<DispatchResult<any>>
 ) => Promise<DispatchResult<any>>;
+export class CommandDispatcherBuilder {
+  private middlewares: CommandMiddleware[] = [];
+  private sinks: EventSinkExecutor;
+  private handler: GenericCommandHandlerInterface;
+
+  constructor(private readonly factory: CommandHandlerFactory) {
+    this.sinks = new EventSinkExecutor(factory);
+    this.handler = new GenericCommandHandler(factory);
+    this.middlewares = [];
+  }
+
+  withMiddlewares(middlewares: CommandMiddleware[]): CommandDispatcherBuilder {
+    this.middlewares = [...this.middlewares, ...middlewares];
+    return this;
+  }
+
+  withEventSinks(sinks: EventSinkExecutor): CommandDispatcherBuilder {
+    this.sinks = sinks;
+    return this;
+  }
+
+  withCommandHandler(handler: GenericCommandHandlerInterface): CommandDispatcherBuilder {
+    this.handler = handler;
+    return this;
+  }
+
+  build(): CommandDispatcher {
+    return new CommandDispatcher(
+      this.factory,
+      this.middlewares,
+      this.sinks,
+      this.handler
+    );
+  }
+}
 
 export class CommandDispatcher {
   constructor(
@@ -42,21 +77,38 @@ export class CommandDispatcher {
     const trace = options.trace ?? (() => {});
 
     const execute = async (cmd: Command): Promise<DispatchResult<T>> => {
-      const result: CommandHandlerResult<T> = await this.handler.handle(cmd);
-
+      // Execute the command and get the result
+      const result = await this.handler.handle<T>(cmd);
+      
+      // Process events after command execution
       for (const event of result.events) {
         trace({ type: 'event.applied', data: { event } });
-        await this.sinks.run(event);
+        await this.sinks.run(event, result.aggregate, cmd);
       }
-
-      return { aggregate: result.aggregate, events: result.events };
+      
+      return result;
     };
 
     const middlewareChain = this.middlewares.reduceRight<MiddlewareFunction>(
-      (next, middleware) => (cmd) => middleware(cmd, next),
+      (next, middleware) => async (cmd) => {
+        trace({ type: 'middleware.executing', data: { middleware: middleware.name || 'anonymous' } });
+        try {
+          const result = await middleware(cmd, next);
+          trace({ type: 'middleware.completed', data: { middleware: middleware.name || 'anonymous' } });
+          return result;
+        } catch (error) {
+          trace({ type: 'middleware.failed', data: { middleware: middleware.name || 'anonymous', error } });
+          throw error;
+        }
+      },
       execute
     );
 
-    return middlewareChain(command);
+    try {
+      return await middlewareChain(command);
+    } catch (error) {
+      trace({ type: 'command.failed', data: { command, error } });
+      throw error;
+    }
   }
 }

@@ -2,6 +2,7 @@ import { CommandHandlerFactory } from "../commands/command-handler-factory";
 import { getEventSinksFor } from "./event-sink-annotation";
 import {DomainEvent} from "@/components/events/events";
 import {AggregateRoot} from "@/components/aggregate/aggregate";
+import { Command } from "../commands/command";
 
 export interface EventSinkExecutorOptions {
   failFast?: boolean;
@@ -9,8 +10,8 @@ export interface EventSinkExecutorOptions {
 }
 
 export interface EventSinkHandler<TEvent extends DomainEvent= any, Aggregate extends AggregateRoot = AggregateRoot> {
-    handle(event: TEvent, aggregate: Aggregate): Promise<void> | void;
-    couldBeTriggered?(event: TEvent, aggregate: Aggregate): Promise<boolean> | boolean;
+    handle(event: TEvent, aggregate: Aggregate, command?: Command): Promise<void> | void;
+    couldBeTriggered?(event: TEvent, aggregate: Aggregate, command?: Command): Promise<boolean> | boolean;
 }
 
 export class EventSinkExecutor {
@@ -19,7 +20,7 @@ export class EventSinkExecutor {
     private readonly options: EventSinkExecutorOptions = {}
   ) {}
 
-  async run(event: DomainEvent, aggregate: AggregateRoot): Promise<void> {
+  async run(event: DomainEvent, aggregate: AggregateRoot, command?: Command): Promise<void> {
     const metadata = getEventSinksFor(event.constructor);
     const trace = this.options.trace ?? (() => {});
     const failFast = this.options.failFast ?? false;
@@ -27,6 +28,7 @@ export class EventSinkExecutor {
     const executions = metadata.map(async ({ sinkType }) => {
 
       const instance: EventSinkHandler = this.factory.create(sinkType as new (...args: any[]) => EventSinkHandler);
+      if (!instance) return
       trace({ type: 'event.sink.invoked', data: { sink: sinkType.name, event } });
 
       try {

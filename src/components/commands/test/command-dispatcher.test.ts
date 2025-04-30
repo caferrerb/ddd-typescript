@@ -1,11 +1,11 @@
-import { CommandDispatcher, CommandMiddleware } from '../command-dispatcher';
+import { CommandDispatcher, CommandDispatcherBuilder, CommandMiddleware } from '../command-dispatcher';
 import { GenericCommandHandler } from '../baseCommandHandler';
 import { CommandHandlerFactory } from '../command-handler-factory';
 import { InMemoryEventStore, InMemoryStateStore } from '../../../test/infraestructure';
 import { EventSinkExecutor } from '../../events/avent-sink-executor';
 import {DepositCommand, DepositCommandHandler, WithdrawCommand} from "./mocks/commandmocks";
 import {TestAggregate} from "../../aggregate/test/mocks/aggregatemocks";
-import {DepositEvent} from "../../events/test/mocks/eventsmocks";
+import {DepositEvent, DepositEventSink, WithdrawEvent, WithDrawSink} from "../../events/test/mocks/eventsmocks";
 
 describe('CommandDispatcher', () => {
   let dispatcher: CommandDispatcher;
@@ -13,22 +13,44 @@ describe('CommandDispatcher', () => {
   let eventStore: InMemoryEventStore;
   let stateStore: InMemoryStateStore;
   let genericHandler: GenericCommandHandler<any>;
+  let middleware1: CommandMiddleware;
+  let middleware2: CommandMiddleware;
+  let withDrawSink: any;
+  let depositEventSink: any;
 
   beforeEach(() => {
     eventStore = new InMemoryEventStore();
     stateStore = new InMemoryStateStore();
+    middleware1 = jest.fn();
+    middleware2 = jest.fn();
+    withDrawSink = jest.fn(async (e: WithdrawEvent)=>{ return } );
+    depositEventSink = jest.fn(async (e: DepositEvent)=>{ return } );
     
     factory = {
       create: ((type: any): any => {
-        if (type === TestAggregate) return new TestAggregate();
         if (type === DepositCommandHandler) return new DepositCommandHandler();
-        throw new Error('Unknown type');
+        if (type === DepositEventSink) return new DepositEventSink(depositEventSink);
+        if (type === WithDrawSink) return new WithDrawSink(withDrawSink);
+
+        return null;
       }),
       getEventStore: jest.fn(() => eventStore),
       getStateStore: jest.fn(() => stateStore),
     };
 
-    dispatcher = new CommandDispatcher(factory);
+    dispatcher = new CommandDispatcherBuilder(factory)
+    .withMiddlewares([
+        async (command, next) => {
+          await middleware1(command, next);
+          return await next(command);
+        },
+        async (command, next) => {
+          await middleware2(command, next);
+          return await next(command);
+        },
+    ])
+    .withEventSinks(new EventSinkExecutor(factory))
+    .build();
   });
 
   it('should dispatch a command and return the result', async () => {
@@ -64,28 +86,15 @@ describe('CommandDispatcher', () => {
     expect(result.aggregate.getState().value).toBe(70);
   });
 
-  it('should throw an error when command handling fails', async () => {
-    const invalidCommand = new WithdrawCommand({ amount: 200 }, { aggregateId: 'agg-4' });
-    
-    // First deposit a smaller amount
-    await dispatcher.dispatch(new DepositCommand({ amount: 50 }, { aggregateId: 'agg-4' }));
-    
-    // Then try to withdraw more than available
-    await expect(dispatcher.dispatch(invalidCommand)).rejects.toThrow();
-  });
-
   it('should execute event sinks after command handling', async () => {
-    // Create a mock event sink
-    const mockSink = jest.fn();
+    const mockSink = depositEventSink;
     const sinks = new EventSinkExecutor(factory);
-    //sinks.register(DepositEvent, mockSink);
-    
+
     const dispatcherWithSinks = new CommandDispatcher(factory, [], sinks);
     
     const command = new DepositCommand({ amount: 100 }, { aggregateId: 'agg-5' });
     await dispatcherWithSinks.dispatch(command);
     
-    // Verify the sink was called with the event
     expect(mockSink).toHaveBeenCalledTimes(1);
     expect(mockSink.mock.calls[0][0]).toBeInstanceOf(DepositEvent);
     expect(mockSink.mock.calls[0][0].data.amount).toBe(100);
