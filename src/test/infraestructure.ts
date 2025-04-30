@@ -1,6 +1,7 @@
-import { EventStore } from "../infraestructure/eventstore";
-import { DomainEvent } from "../components/events/events";
-import { StateStore } from "../infraestructure/statestore";
+import {EventStore} from "../infraestructure/eventstore";
+import {DomainEvent} from "../components/events/events";
+import {StateStore} from "../infraestructure/statestore";
+
 export class InMemoryEventStore implements EventStore {
     private readonly store: Map<string, DomainEvent[]> = new Map();
     

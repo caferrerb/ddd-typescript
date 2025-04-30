@@ -1,6 +1,5 @@
 import 'reflect-metadata';
-import { METADATA_KEYS } from '../reflection';
-import { DomainEvent } from './events';
+
 const EXPLICIT_REDUCERS_KEY = Symbol('ddd:explicitReducers');
 
 export function reducer(eventType: Function): MethodDecorator {

@@ -1,4 +1,4 @@
-import { DomainEvent } from "../components/events/events";
+import {DomainEvent} from "../components/events/events";
 
 export interface EventStore {
     getEvents(aggregateType: Function, id: string): Promise<DomainEvent[]>;

@@ -1,12 +1,9 @@
-import { AggregateRoot } from "../aggregate/aggregate";
-import { isAggregateRoot } from "../aggregate/aggregate-annotation";
-import { getAggregateCommandHandlers } from "../aggregate/aggregate-command";
-import { EventSinkExecutor } from "../events/avent-sink-executor";
-import { getConventionReducers, getExplicitReducersAll } from "../events/event-reducer";
-import { DomainEvent } from "../events/events";
-import { CommandHandlerResult, GenericCommandHandler, GenericCommandHandlerInterface } from "./baseCommandHandler";
-import { Command } from "./command";
-import { CommandHandler, CommandHandlerFactory } from "./command-handler-factory";
+import {AggregateRoot} from "../aggregate/aggregate";
+import {EventSinkExecutor} from "../events/avent-sink-executor";
+import {DomainEvent} from "../events/events";
+import {GenericCommandHandler, GenericCommandHandlerInterface} from "./baseCommandHandler";
+import {Command} from "./command";
+import {CommandHandlerFactory} from "./command-handler-factory";
 
 export interface DispatchResult<TAggregate extends AggregateRoot> {
   aggregate: TAggregate;

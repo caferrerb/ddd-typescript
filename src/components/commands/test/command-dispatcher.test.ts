@@ -1,8 +1,8 @@
-import { CommandDispatcher, CommandDispatcherBuilder, CommandMiddleware } from '../command-dispatcher';
-import { GenericCommandHandler } from '../baseCommandHandler';
-import { CommandHandlerFactory } from '../command-handler-factory';
-import { InMemoryEventStore, InMemoryStateStore } from '../../../test/infraestructure';
-import { EventSinkExecutor } from '../../events/avent-sink-executor';
+import {CommandDispatcher, CommandDispatcherBuilder, CommandMiddleware} from '../command-dispatcher';
+import {GenericCommandHandler} from '../baseCommandHandler';
+import {CommandHandlerFactory} from '../command-handler-factory';
+import {InMemoryEventStore, InMemoryStateStore} from '../../../test/infraestructure';
+import {EventSinkExecutor} from '../../events/avent-sink-executor';
 import {DepositCommand, DepositCommandHandler, WithdrawCommand} from "./mocks/commandmocks";
 import {TestAggregate} from "../../aggregate/test/mocks/aggregatemocks";
 import {DepositEvent, DepositEventSink, WithdrawEvent, WithDrawSink} from "../../events/test/mocks/eventsmocks";

@@ -1,8 +1,8 @@
-import { CommandHandlerFactory } from "../commands/command-handler-factory";
-import { getEventSinksFor } from "./event-sink-annotation";
+import {CommandHandlerFactory} from "../commands/command-handler-factory";
+import {getEventSinksFor} from "./event-sink-annotation";
 import {DomainEvent} from "@/components/events/events";
 import {AggregateRoot} from "@/components/aggregate/aggregate";
-import { Command } from "../commands/command";
+import {Command} from "../commands/command";
 
 export interface EventSinkExecutorOptions {
   failFast?: boolean;

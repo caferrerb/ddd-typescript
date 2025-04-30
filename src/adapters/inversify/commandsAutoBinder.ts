@@ -1,6 +1,6 @@
-import { getAllEventSinks } from '../../components/events/event-sink-annotation';
-import { getAllCommandHandlers } from '../../components/commands/command-handler-annotation';
-import { Container } from 'inversify';
+import {getAllEventSinks} from '../../components/events/event-sink-annotation';
+import {getAllCommandHandlers} from '../../components/commands/command-handler-annotation';
+import {Container} from 'inversify';
 
 export function bindAllDDDComponents(container: Container) {
   const handlers = getAllCommandHandlers();

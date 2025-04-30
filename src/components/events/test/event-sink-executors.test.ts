@@ -1,5 +1,5 @@
-import { EventSinkExecutor } from '../avent-sink-executor';
-import { CommandHandlerFactory } from '../../commands/command-handler-factory';
+import {EventSinkExecutor} from '../avent-sink-executor';
+import {CommandHandlerFactory} from '../../commands/command-handler-factory';
 import {
   DepositEvent,
   DepositEventSink,

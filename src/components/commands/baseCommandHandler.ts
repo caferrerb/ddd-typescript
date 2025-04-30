@@ -1,13 +1,9 @@
-import { getConventionReducers, getExplicitReducersAll } from '../events/event-reducer';
-import { StateStore } from '../../infraestructure/statestore';
-import { EventStore } from '../../infraestructure/eventstore';
-import { CommandHandler, CommandHandlerFactory } from './command-handler-factory';
-import { Command } from './command';
-import { getAggregateNameForCommand, getMethodNameForCommand } from './command-annotation';
-import { DomainEvent } from '../events/events';
-import { getHandlerForCommand } from './command-handler-annotation';
-import { AggregateRoot } from '../aggregate/aggregate';
-import { getAggregateCommandHandlers } from '../aggregate/aggregate-command';
+import {CommandHandler, CommandHandlerFactory} from './command-handler-factory';
+import {Command} from './command';
+import {getAggregateNameForCommand, getMethodNameForCommand} from './command-annotation';
+import {DomainEvent} from '../events/events';
+import {getHandlerForCommand} from './command-handler-annotation';
+import {AggregateRoot} from '../aggregate/aggregate';
 import {getAggregateByName} from "@/components/aggregate/aggregate-annotation";
 
 export interface CommandHandlerResult<TAggregate extends AggregateRoot> {

@@ -1,5 +1,5 @@
-import { CommandMiddleware } from '../components/commands/command-dispatcher';
-import { Command } from '../components/commands/command';
+import {CommandMiddleware} from '../components/commands/command-dispatcher';
+import {Command} from '../components/commands/command';
 import crypto from 'crypto';
 
 export interface CommandLogStore {

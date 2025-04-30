@@ -1,9 +1,9 @@
-import { WithdrawCommand } from "../../../commands/test/mocks/commandmocks";
-import { reducer } from "../../../events/event-reducer";
-import { DepositEvent, WithdrawEvent } from "@/components/events/test/mocks/eventsmocks";
-import { AggregateRoot } from "../../aggregate";
-import { aggregateRoot } from "../../aggregate-annotation";
-import { aggregateCommandHandler } from "../../aggregate-command";
+import {WithdrawCommand} from "../../../commands/test/mocks/commandmocks";
+import {reducer} from "../../../events/event-reducer";
+import {DepositEvent, WithdrawEvent} from "@/components/events/test/mocks/eventsmocks";
+import {AggregateRoot} from "../../aggregate";
+import {aggregateRoot} from "../../aggregate-annotation";
+import {aggregateCommandHandler} from "../../aggregate-command";
 
 export interface TestAggregateState {
     value: number;

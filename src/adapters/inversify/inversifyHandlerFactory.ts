@@ -1,7 +1,7 @@
-import { StateStore } from "../../infraestructure/statestore";
-import { CommandHandlerFactory } from "../../components/commands/command-handler-factory";
-import { Container } from "inversify";
-import { EventStore } from "../../infraestructure/eventstore";
+import {StateStore} from "../../infraestructure/statestore";
+import {CommandHandlerFactory} from "../../components/commands/command-handler-factory";
+import {Container} from "inversify";
+import {EventStore} from "../../infraestructure/eventstore";
 
 export interface Dependencies {
     stateStore: string;

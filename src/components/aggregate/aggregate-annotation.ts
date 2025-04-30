@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { METADATA_KEYS } from '../reflection';
+import {METADATA_KEYS} from '../reflection';
 
 export function aggregateRoot(name?: string): ClassDecorator {
     return (target) => {

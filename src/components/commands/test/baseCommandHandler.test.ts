@@ -1,7 +1,7 @@
-import { Command } from "../command";
-import { CommandHandler, CommandHandlerFactory } from "../command-handler-factory";
-import { InMemoryEventStore, InMemoryStateStore } from "../../../test/infraestructure";
-import { GenericCommandHandler } from "../baseCommandHandler";
+import {Command} from "../command";
+import {CommandHandlerFactory} from "../command-handler-factory";
+import {InMemoryEventStore, InMemoryStateStore} from "../../../test/infraestructure";
+import {GenericCommandHandler} from "../baseCommandHandler";
 import {DepositCommand, DepositCommandHandler, WithdrawCommand} from "./mocks/commandmocks";
 import {DepositEvent} from "../../events/test/mocks/eventsmocks";
 import {TestAggregate} from "../../aggregate/test/mocks/aggregatemocks";

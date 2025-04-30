@@ -1,15 +1,9 @@
-import {domainEvent} from "@/components/events/event-annotation";
 import {DomainEvent} from "@/components/events/events";
 import {command} from "@/components/commands/command-annotation";
 import {Command} from "@/components/commands/command";
-import {aggregateRoot} from "@/components/aggregate/aggregate-annotation";
-import {AggregateRoot} from "@/components/aggregate/aggregate";
-import {reducer} from "@/components/events/event-reducer";
-import {aggregateCommandHandler} from "@/components/aggregate/aggregate-command";
 import {commandHandlerFor} from "@/components/commands/command-handler-annotation";
 import {CommandHandler} from "@/components/commands/command-handler-factory";
-import {DepositEvent, WithdrawEvent} from "@/components/events/test/mocks/eventsmocks";
-import { TestAggregate } from "@/components/aggregate/test/mocks/aggregatemocks";
+import {TestAggregate} from "@/components/aggregate/test/mocks/aggregatemocks";
 
 @command({ aggregate: 'TestAggregate' })
 export class DepositCommand implements Command<{ amount: number }> {

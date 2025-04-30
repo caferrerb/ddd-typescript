@@ -1,0 +1,4 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+node scripts/check-changeset.js || exit 1
+npm test || exit 1

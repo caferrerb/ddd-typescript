@@ -1,7 +1,6 @@
 // === annotations/Command.ts ===
 import 'reflect-metadata';
-import { METADATA_KEYS } from '../reflection';
-import { AggregateRoot } from '../aggregate/aggregate';
+import {METADATA_KEYS} from '../reflection';
 
 interface CommandOptions {
   aggregate: string;

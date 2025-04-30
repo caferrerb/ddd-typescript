@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { METADATA_KEYS } from '../reflection';
+import {METADATA_KEYS} from '../reflection';
 
 export function aggregateCommandHandler(): MethodDecorator {
   return (target, propertyKey) => {

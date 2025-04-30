@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid'; // Librería UUID para generar IDs únicos
+import {v4 as uuidv4} from 'uuid'; // Librería UUID para generar IDs únicos
 
 export interface Metadata {
   readonly eventId: string;

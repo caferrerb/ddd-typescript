@@ -1,0 +1,51 @@
+name: Test, Version and Publish
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  test-version-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: 🧱 Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          registry-url: 'https://registry.npmjs.org/'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: ✅ Run tests
+        run: npm test
+
+      - name: 🧾 Version packages (if changeset exists)
+        run: |
+          if [ -n "$(ls .changeset/*.md 2>/dev/null)" ]; then
+            npx changeset version
+            git config user.name "github-actions"
+            git config user.email "github-actions@github.com"
+            git add .
+            git commit -m "ci: version packages"
+            git tag v$(node -p "require('./package.json').version")
+            git push --follow-tags
+          else
+            echo "✅ No changesets found — skipping version step"
+          fi
+
+      - name: 🚀 Publish to npm
+        run: npm run release
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
