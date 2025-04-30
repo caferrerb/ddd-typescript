@@ -1,5 +1,11 @@
 # ddd-typescript
 
+## 1.3.0
+
+### Minor Changes
+
+- 102f313: fix ci
+
 ## 1.2.0
 
 ### Minor Changes
