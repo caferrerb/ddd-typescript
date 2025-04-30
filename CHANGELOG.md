@@ -1,5 +1,11 @@
 # ddd-typescript
 
+## 1.2.0
+
+### Minor Changes
+
+- bea00c1: generate version
+
 ## 1.1.0
 
 ### Minor Changes
