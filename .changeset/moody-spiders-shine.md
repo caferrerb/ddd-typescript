@@ -1,5 +1,0 @@
----
-"ddd-typescript": patch
----
-
-precommit
