@@ -34,12 +34,14 @@ jobs:
       - name: 🧾 Version packages (if changeset exists)
         run: |
           if [ -n "$(ls .changeset/*.md 2>/dev/null)" ]; then
+            echo "📦 Running changeset version..."
             npx changeset version
             git config user.name "github-actions"
             git config user.email "github-actions@github.com"
             git add .
-            git commit -m "ci: version packages"
-            git tag v$(node -p "require('./package.json').version")
+            git commit -m "ci: version bump"
+            VERSION=$(node -p "require('./package.json').version")
+            git tag v$VERSION
             git push --follow-tags
           else
             echo "✅ No changesets found — skipping version step"
