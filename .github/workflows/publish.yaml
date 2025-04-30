@@ -41,6 +41,7 @@ jobs:
             git add .
             git commit -m "ci: version bump"
             VERSION=$(node -p "require('./package.json').version")
+            echo $VERSION
             git tag v$VERSION
             git pull --rebase origin main
             git push --follow-tags
@@ -51,9 +52,9 @@ jobs:
       - name: 📦 Get new version from package.json
         id: get_version
         run: |
-              version=$(node -p "require('./package.json').version")
-              echo $version
-              echo $version >> "$GITHUB_OUTPUT"
+            version=$(node -p "require('./package.json').version")
+            echo $version
+            echo $version >> "$GITHUB_OUTPUT"
 
       - name: 🏷️ Create GitHub Release
         uses: softprops/action-gh-release@v1
