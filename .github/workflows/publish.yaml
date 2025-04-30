@@ -54,7 +54,7 @@ jobs:
         run: |
             version=$(node -p "require('./package.json').version")
             echo $version
-            echo $version >> "$GITHUB_OUTPUT"
+            echo v$version >> "$GITHUB_OUTPUT"
 
       - name: 🏷️ Create GitHub Release
         uses: softprops/action-gh-release@v1
