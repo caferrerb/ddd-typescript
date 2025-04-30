@@ -42,12 +42,24 @@ jobs:
             git commit -m "ci: version bump"
             VERSION=$(node -p "require('./package.json').version")
             git tag v$VERSION
-            # 🔄 Rebase from remote before pushing
             git pull --rebase origin main
             git push --follow-tags
           else
             echo "✅ No changesets found — skipping version step"
           fi
+
+      - name: 📦 Get new version from package.json
+        id: get_version
+        run: echo "version=$(node -p \"require('./package.json').version\")" >> "$GITHUB_OUTPUT"
+
+      - name: 🏷️ Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.get_version.outputs.version }}
+          name: Release v${{ steps.get_version.outputs.version }}
+          body_path: CHANGELOG.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🚀 Publish to npm
         run: npm run release
