@@ -42,6 +42,8 @@ jobs:
             git commit -m "ci: version bump"
             VERSION=$(node -p "require('./package.json').version")
             git tag v$VERSION
+            # 🔄 Rebase from remote before pushing
+            git pull --rebase origin main
             git push --follow-tags
           else
             echo "✅ No changesets found — skipping version step"
