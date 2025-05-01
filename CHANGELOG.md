@@ -1,5 +1,11 @@
 # ddd-typescript
 
+## 1.8.0
+
+### Minor Changes
+
+- 0a6e313: fix pr wf
+
 ## 1.7.0
 
 ### Minor Changes
