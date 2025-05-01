@@ -2,7 +2,7 @@
 import 'reflect-metadata';
 import {METADATA_KEYS} from '../reflection';
 
-interface CommandOptions {
+export interface CommandOptions {
   aggregate: string;
   isConstructor?: boolean;
   methodName?: string;
