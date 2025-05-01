@@ -1,4 +1,4 @@
-name: Test, Version and Publish
+name: Release
 
 on:
   push:
@@ -10,16 +10,16 @@ permissions:
   packages: write
 
 jobs:
-  test-version-publish:
+  build-test-release:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout code
+      - name: 📅 Checkout
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      - name: 🧱 Setup Node.js
+      - name: 🚱 Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 18
@@ -28,44 +28,38 @@ jobs:
       - name: 📦 Install dependencies
         run: npm ci
 
-      - name: ✅ Run tests
+      - name: 🚰 Build
+        run: npm run build
+
+      - name: ✅ Test
         run: npm test
 
-      - name: 🧾 Version packages (if changeset exists)
+      - name: 📟 Version packages if changeset exists
+        id: version_step
         run: |
           if [ -n "$(ls .changeset/*.md 2>/dev/null)" ]; then
-            echo "📦 Running changeset version..."
+            echo "Running changeset version..."
             npx changeset version
             git config user.name "github-actions"
             git config user.email "github-actions@github.com"
             git add .
             git commit -m "ci: version bump"
             VERSION=$(node -p "require('./package.json').version")
-            echo $VERSION
-            git tag v$VERSION
+            git tag "v$VERSION"
             git pull --rebase origin main
             git push --follow-tags
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
           else
-            echo "✅ No changesets found — skipping version step"
+            echo "No changesets found"
+            echo "version=" >> $GITHUB_OUTPUT
           fi
 
-      - name: 📦 Get new version from package.json
-        id: get_version
-        run: |
-            version=$(node -p "require('./package.json').version")
-            echo $version
-            echo v$version >> "$GITHUB_OUTPUT"
-
-      - name: 🏷️ Create GitHub Release
-        uses: softprops/action-gh-release@v1
+      - name: 🏷️ Create GitHub Release (official)
+        if: steps.version_step.outputs.version != ''
+        uses: actions/create-release@v1
         with:
-          tag_name: v${{ steps.get_version.outputs.version }}
-          name: Release v${{ steps.get_version.outputs.version }}
+          tag_name: v${{ steps.version_step.outputs.version }}
+          release_name: Release v${{ steps.version_step.outputs.version }}
           body_path: CHANGELOG.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: 🚀 Publish to npm
-        run: npm run release
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
