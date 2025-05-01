@@ -1,5 +1,17 @@
 # ddd-typescript
 
+## 1.7.0
+
+### Minor Changes
+
+- 46a489b: pr and publish gha
+
+### Patch Changes
+
+- f1fb5c2: fix tag
+- 639c6aa: fix version
+- 09523f9: fix publish
+
 ## 1.5.1
 
 ### Patch Changes
