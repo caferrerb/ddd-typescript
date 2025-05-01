@@ -1,6 +1,6 @@
 {
   "name": "ddd-typescript",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "description": "Domain-Driven Design TypeScript project",
   "main": "dist/index.js",
   "scripts": {

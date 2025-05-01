@@ -1,5 +1,11 @@
 # ddd-typescript
 
+## 1.8.1
+
+### Patch Changes
+
+- 37eedfd: fix version
+
 ## 1.8.0
 
 ### Minor Changes
